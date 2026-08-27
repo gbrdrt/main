@@ -6,6 +6,9 @@
 > ficou defasado assim que passamos a publicar fora do Claude.ai). Sem quebrar
 > favoritos salvos (os `id` de eventos que continuam válidos não podem mudar).
 >
+> Cada rodada cobre **mês corrente + prévia do mês seguinte** — leia a seção 1.1
+> antes de mexer em `MONTH_LABEL`, e a 5.3 antes de escrever qualquer `period`.
+>
 > Ao final, o arquivo atualizado deve ser entregue pronto pra commitar e dar
 > push neste repositório — o GitHub Pages publica a versão nova a partir daí.
 
@@ -13,10 +16,45 @@
 
 ## 1. Objetivo
 
-Atualizar a agenda cultural de [MÊS/ANO] do app **Agenda Cultural SP**, cobrindo
-a cidade de São Paulo como um todo (sem recorte de bairro ou raio). Buscar
-informações reais e verificadas — nunca usar conhecimento de treinamento sem
-confirmar, já que a programação cultural muda mensalmente.
+Atualizar a agenda cultural do app **Agenda Cultural SP**, cobrindo a cidade de
+São Paulo como um todo (sem recorte de bairro ou raio). Buscar informações reais
+e verificadas — nunca usar conhecimento de treinamento sem confirmar, já que a
+programação cultural muda mensalmente.
+
+Cada rodada cobre **dois meses**: o **mês corrente**, com agenda completa, e o
+**mês seguinte**, como prévia do que já estiver confirmado (seção 1.1).
+
+### 1.1 Modelo de dois meses
+
+**`MONTH_LABEL`/`YEAR_LABEL` são sempre o mês real de hoje — nunca adiantar
+para o mês seguinte, nem no fim do mês.** Não é preferência estética: o app só
+esconde evento passado quando o rótulo bate com o mês real (`hasEventEnded()`
+compara os dois). Adiantar o rótulo faz a agenda inteira do mês corrente
+reaparecer e nada mais expirar.
+
+Onde cada coisa entra:
+
+- **`WEEKS` — só o mês corrente.** O campo `date` (`"Sáb 29"`, `"29–30"`) é
+  sempre lido como dia do mês do rótulo. Evento de outro mês em `WEEKS` gera
+  data errada no indicador "Hoje" e no botão "Adicionar ao calendário".
+- **`ONGOING` — itens contínuos do mês corrente + tudo que já estiver
+  confirmado do mês seguinte.** Os do mês seguinte usam `period` começando com
+  o nome do mês e um separador `·`, seguido de datas com mês explícito:
+  `"Setembro · 18 a 26/09"`. O prefixo deixa claro no card que não é deste mês,
+  e o `/MM` faz o app calcular a data certa mesmo com o rótulo em outro mês.
+
+**Na virada do mês**, o que era prévia vira agenda: mover o item de `ONGOING`
+para `WEEKS`, **mantendo exatamente o mesmo `id`** (é o que preserva os
+favoritos de quem já salvou o evento na prévia), trocando `period` por `date`.
+Itens que atravessam a virada e continuam contínuos ficam em `ONGOING`, só com
+o `period` reescrito para o novo mês corrente.
+
+A prévia do mês seguinte **não tem meta de cobertura**. Grandes instituições
+(Theatro Municipal, Osesp, MASP, Pinacoteca, Japan House) publicam temporada com
+antecedência e costumam render alguns itens; casas de show com agenda contínua
+(JazzB, Blue Note, Casa de Francisca, Cine Joia) raramente publicam o mês
+seguinte a tempo — e nesse caso simplesmente não entram, sem inventar nada. A
+regra 4.4 vale igual para os dois meses.
 
 ## 2. Locais de curadoria fixa (buscar cada um individualmente)
 
@@ -91,13 +129,23 @@ Instituto Tomie Ohtake, Museu da Língua Portuguesa, Farol Santander, Auditório
 
 ## 4. Metodologia de busca
 
-1. Uma busca por local — nunca agrupar vários locais numa query só.
+1. Uma busca por local — nunca agrupar vários locais numa query só. O que é
+   proibido é juntar locais; fazer **duas buscas para o mesmo local** (uma para
+   o mês corrente, outra para o mês seguinte) é o esperado, e às vezes uma
+   busca só já devolve os dois meses.
 2. Tentar `web_fetch` direto na página
-   oficial de programação.
+   oficial de programação. Se o ambiente bloquear `web_fetch` (proxy de
+   egresso devolvendo host bloqueado), cair para busca web — e **registrar a
+   limitação no relatório (seção 8)**, porque a cobertura cai muito: casas cujo
+   site não está indexado em snippet ficam sem dados verificáveis.
 3. Confirmar sempre o ano — muito conteúdo indexado é de anos anteriores. Quando a fonte
    mencionar o dia da semana (ex: "dia 23, sexta-feira"), cruzar com o calendário real do
    mês/ano em questão antes de usar a data — é o jeito mais confiável de pegar conteúdo
-   reindexado de anos anteriores que passaria despercebido só pelo texto.
+   reindexado de anos anteriores que passaria despercebido só pelo texto. Vale
+   com força redobrada para o mês seguinte, onde "programação de setembro"
+   de um ano anterior é fácil de confundir com a deste ano. Quando o dia da
+   semana não bater com o calendário real, **descartar o item** — não tentar
+   "corrigir" a data.
 4. **Se a agenda do mês não estiver publicada, não inventar**: simplesmente
    não incluir esse local nesta rodada, relatando o que foi verificado no
    relatório final (seção 8). Esta regra tem prioridade sobre qualquer meta
@@ -166,6 +214,41 @@ vale mesmo quando a pesquisa da seção 4.5 traz dezenas de eventos de agenda
 contínua: a maioria entra com `highlight: false` — a cota de 6-8 é sobre
 relevância, não sobre volume de eventos coletados.
 
+A cota de 6-8 é do **mês corrente**. Do **mês seguinte**, no máximo **2**
+destaques, e só para acontecimento realmente grande (ópera, grande coletiva,
+estreia de temporada) — o resto da prévia entra com `highlight: false`. Como a
+aba Destaques esconde o que já encerrou, o que importa é quantos ficam
+*visíveis ao mesmo tempo*: mirar em não passar de ~10.
+
+### 5.3 Formatos seguros de `period`
+
+O app interpreta `period` por texto livre e **esconde** o item quando conclui
+que a data já passou. Um `period` mal formado pode sumir com o evento no dia
+seguinte à publicação. Usar só estes formatos, todos verificados:
+
+| Formato | Exemplo | Como o app entende |
+|---|---|---|
+| `Em cartaz o mês todo` | — | mês corrente inteiro |
+| `DD a DD/MM` | `Setembro · 18 a 26/09` | intervalo, com o mês explícito |
+| `DD/MM` | `Setembro · 5/09` | um dia |
+| `DD, DD e DD/MM` | `Setembro · 3, 4 e 5/09` | dias avulsos |
+| `A partir de DD/MM` | `A partir de 06/08` | **só o dia DD** — some no dia seguinte; usar apenas para coisa curta |
+| texto sem nenhum `DD/MM` | `estreia em setembro, no Pina Luz` | não interpretado: o app nunca esconde e omite o botão de calendário — é o fallback seguro para temporada longa ou data ainda não divulgada |
+
+Duas armadilhas reais, já observadas:
+
+- **`até DD/MM` de outro ano some.** `"até 25/01/2027"` é lido como 25/01 do
+  ano corrente, ou seja, uma data no passado — o item desaparece. Para
+  temporada que cruza o ano, usar `Em cartaz o mês todo` no começo do texto e
+  escrever o fim por extenso: `"Em cartaz o mês todo, até 25 de janeiro de 2027"`.
+- **Números soltos junto de um `/MM` viram lista de dias.** `"Desde 26/08, em
+  cartaz até 25/01/2027"` é lido como "dias 26 e 25 de agosto" e o item some.
+  Ficar nos formatos da tabela resolve.
+
+Depois de escrever ou alterar um `period`, conferir mentalmente uma coisa só:
+**este item deve continuar visível hoje?** Se a resposta for sim e o formato não
+estiver na tabela, trocar por um que esteja.
+
 ## 6. Identidade do app (fixo)
 
 - Nome do app: **Agenda Cultural SP**. Título visível no header: **Agenda
@@ -189,23 +272,37 @@ relevância, não sobre volume de eventos coletados.
   "Últimos dias!" no início do `desc`.
 - Eventos com datas múltiplas (ex: 06–08): mencionar no `desc` se algum dia
   específico tem preço especial ou atração extra, só quando for verdade.
+- Quanto mais perto do fim do mês, mais a rodada rende no **mês seguinte** que
+  no corrente — a agenda do mês corrente já está publicada e quase toda
+  cumprida. Nessa altura, priorizar: (a) o que ainda acontece nos dias
+  restantes, (b) a prévia do mês seguinte, (c) correções no que já está no ar.
+- Nunca antecipar a virada de `MONTH_LABEL` "porque o mês está acabando" (ver
+  1.1) — a virada acontece na primeira rodada do mês novo, e é ela que promove
+  a prévia de `ONGOING` para `WEEKS`.
 
 ## 8. Relatório de atualização (obrigatório ao final)
 
-Ao fim de cada atualização, reportar ao usuário:
+Ao fim de cada atualização, reportar ao usuário. **Separar mês corrente e mês
+seguinte** nos dois primeiros blocos — a cobertura dos dois é muito diferente e
+misturá-las esconde buracos.
 
-**✅ Locais confirmados** — quantos eventos por local.
+**✅ Locais confirmados** — quantos eventos por local, separando mês corrente e
+prévia do mês seguinte.
 **⚠️ Locais sem programação encontrada** — com nota factual do que foi
-verificado (não "não encontrei nada", e sim "verifiquei X e a fonte diz Y").
-Indicar quais desses locais já haviam ficado sem programação na rodada
-anterior e foram re-checados nesta vez (não apenas repetidos sem nova busca)
-— um local pode ter publicado a agenda desde então.
+verificado (não "não encontrei nada", e sim "verifiquei X e a fonte diz Y"),
+dizendo para qual dos dois meses. Indicar quais desses locais já haviam ficado
+sem programação na rodada anterior e foram re-checados nesta vez (não apenas
+repetidos sem nova busca) — um local pode ter publicado a agenda desde então.
 **🔍 Novos locais pesquisados nesta rodada** (se houver).
-**📊 Estatísticas gerais** — total de eventos, destaques, fontes principais
-consultadas, quantos eventos ganharam `url` própria (ver seção 5.1) vs.
-quantos ficaram sem por falta de página específica.
+**📊 Estatísticas gerais** — total de eventos, destaques (quantos do mês
+corrente, quantos da prévia), fontes principais consultadas, quantos eventos
+ganharam `url` própria (ver seção 5.1) vs. quantos ficaram sem por falta de
+página específica.
 **⚠️ Observações de acuracidade** — dado incerto, inferência feita, fonte
-oficial fora do ar/substituída por alternativa.
+oficial fora do ar/substituída por alternativa, `web_fetch` bloqueado no
+ambiente (ver 4.2), item descartado pelo cruzamento de dia da semana (ver 4.3).
+**🔁 Migração de prévia** — nas rodadas de virada de mês, quais `id` saíram de
+`ONGOING` para `WEEKS` e a confirmação de que nenhum `id` mudou.
 
 Estas são **estatísticas descritivas do que foi encontrado**, não metas a
 cumprir — se a cobertura real for menor que o esperado, isso deve aparecer
