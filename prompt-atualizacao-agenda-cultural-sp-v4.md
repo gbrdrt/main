@@ -49,12 +49,22 @@ favoritos de quem já salvou o evento na prévia), trocando `period` por `date`.
 Itens que atravessam a virada e continuam contínuos ficam em `ONGOING`, só com
 o `period` reescrito para o novo mês corrente.
 
-A prévia do mês seguinte **não tem meta de cobertura**. Grandes instituições
-(Theatro Municipal, Osesp, MASP, Pinacoteca, Japan House) publicam temporada com
-antecedência e costumam render alguns itens; casas de show com agenda contínua
-(JazzB, Blue Note, Casa de Francisca, Cine Joia) raramente publicam o mês
-seguinte a tempo — e nesse caso simplesmente não entram, sem inventar nada. A
-regra 4.4 vale igual para os dois meses.
+A prévia do mês seguinte recebe o **mesmo esforço de busca** do mês corrente:
+cada local da curadoria fixa (seção 2) e dos sugeridos (seção 3) leva as duas
+buscas da seção 4.1 (mês corrente + mês seguinte) em toda rodada que o
+alcança — modo completo (seção 9.1) e modo leve (seção 9.2), não só no dia 1º.
+O objetivo é que `ONGOING` do mês seguinte cresça **ao longo de todo o mês
+corrente**, para a prévia já estar robusta bem antes da virada, em vez de
+concentrada numa reconstrução só no dia 1º.
+
+O que continua limitando a cobertura é a disponibilidade real da informação,
+não o esforço de busca: grandes instituições (Theatro Municipal, Osesp, MASP,
+Pinacoteca, Japan House) costumam publicar temporada com antecedência e
+render vários itens; casas de show com agenda contínua (JazzB, Blue Note,
+Casa de Francisca, Cine Joia) raramente têm o mês seguinte no ar tão cedo —
+nesse caso simplesmente não entram *ainda*, sem inventar nada, e valem a
+buscar de novo nas rodadas seguintes até publicarem. A regra 4.4 vale igual
+para os dois meses.
 
 ## 2. Locais de curadoria fixa (buscar cada um individualmente)
 
@@ -348,9 +358,13 @@ destrói nada.
 2. **Promover a prévia**: os itens do mês que está começando saem de `ONGOING` e
    entram em `WEEKS` **com o mesmo `id`**, trocando `period` por `date`
    (seção 1.1).
-3. Varrer individualmente os locais da seção 2 e os da seção 3.
-4. Fazer a busca editorial geral (4.9).
-5. Montar a prévia do mês seguinte em `ONGOING` (seção 1.1).
+3. Varrer individualmente os locais da seção 2 e os da seção 3 — para cada um,
+   as duas buscas da seção 4.1 (mês corrente **e** mês seguinte, mesmo
+   esforço para os dois, ver 1.1).
+4. Fazer a busca editorial geral (4.9), também cobrindo os dois meses.
+5. Consolidar em `ONGOING` o que o passo 3/4 encontrou de confirmado para o
+   mês seguinte (seção 1.1) — não é uma busca à parte, é o que já saiu das
+   buscas acima.
 6. Relatório completo da seção 8, com o bloco de migração de prévia.
 
 ### 9.2 Modo leve — diário, dias 2 a 31
@@ -370,7 +384,11 @@ Rodada barata, **aditiva e corretiva**. Pode:
 - reescrever `WEEKS` ou `ONGOING` inteiros.
 
 O escopo de cada rodada é a **busca editorial geral (4.9), sempre**, mais o
-**grupo de locais do dia da semana**:
+**grupo de locais do dia da semana** — e, para cada local do grupo, as duas
+buscas da seção 4.1 (mês corrente **e** mês seguinte), não só a do mês
+corrente. É assim que a prévia de `ONGOING` cresce toda semana em vez de ficar
+concentrada no modo completo — reforça o que a seção 7 já pede com prioridade
+redobrada perto do fim do mês, só que desde o início:
 
 | Dia | Grupo |
 |---|---|
