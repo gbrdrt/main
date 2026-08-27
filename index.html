@@ -273,6 +273,18 @@ function getMonthYearNums() {
   return { month: idx + 1, year };
 }
 
+// Nome (capitalizado) do mês seguinte ao MONTH_LABEL — usado só para achar,
+// em ONGOING, os itens de prévia já rotulados "NomeDoMês · ..." (seção 1.1
+// do prompt-mestre). Não envolve nenhuma conta de dia/calendário: WEEKS
+// continua restrito a um único mês (ver nota da seção 1.1 sobre por que
+// misturar dois meses em "date" quebraria o indicador "Hoje").
+function getNextMonthLabel() {
+  const idx = MONTH_NAMES_PT.indexOf(MONTH_LABEL.trim().toLowerCase());
+  if (idx === -1) return null;
+  const name = MONTH_NAMES_PT[(idx + 1) % 12];
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 // Interpreta o campo `date` de eventos da agenda semanal (ex: "Sáb 01",
 // "06–07", "24 e 31").
 function parseWeekDateField(dateStr) {
@@ -814,6 +826,21 @@ function App() {
   const highlightsFiltered = highlights.filter(matchesFilters).filter((ev) => !hasEventEndedGeneric(ev));
   const favEventsFiltered = favEvents.filter(matchesFilters);
 
+  // Página extra ao final do navegador de "Semanas": prévia do mês seguinte,
+  // puxada de ONGOING (itens rotulados "NomeDoMês · ...", seção 1.1). Não
+  // duplica dado nem mexe no parsing de WEEKS — só reaproveita, numa segunda
+  // aba de navegação, os mesmos itens que já aparecem em "Em Cartaz".
+  const nextMonthLabel = useMemo(() => getNextMonthLabel(), []);
+  const nextMonthEvents = useMemo(() => {
+    if (!nextMonthLabel) return [];
+    const prefix = nextMonthLabel + " ·";
+    return ONGOING.filter((ev) => ev.period && ev.period.startsWith(prefix));
+  }, [nextMonthLabel]);
+  const nextMonthFiltered = nextMonthEvents.filter(matchesFilters).filter((ev) => !hasEventEndedGeneric(ev));
+  const hasNextMonthPage = nextMonthFiltered.length > 0;
+  const weekSteps = visibleWeeks.length + (hasNextMonthPage ? 1 : 0);
+  const onNextMonthPage = hasNextMonthPage && weekIdx >= visibleWeeks.length;
+
   const tabs = [
     { key: "semana", label: "Semanas" },
     { key: "cartaz", label: "Em Cartaz" },
@@ -892,16 +919,30 @@ function App() {
               </button>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, textTransform: "uppercase", fontSize: 22 }}>
-                  {currentWeek.events.some((ev) => isEventToday(ev, false)) ? "Essa semana" : "O que vem por aí"}
+                  {onNextMonthPage
+                    ? `Prévia de ${nextMonthLabel}`
+                    : (currentWeek.events.some((ev) => isEventToday(ev, false)) ? "Essa semana" : "O que vem por aí")}
                 </div>
-                <div style={{ fontSize: 12, color: "var(--color-neutral-700)" }}>{currentWeek.range}</div>
+                <div style={{ fontSize: 12, color: "var(--color-neutral-700)" }}>
+                  {onNextMonthPage ? "O que já está confirmado" : currentWeek.range}
+                </div>
               </div>
-              <button onClick={() => setWeekIdx((i) => Math.min(visibleWeeks.length - 1, i + 1))} disabled={weekIdx === visibleWeeks.length - 1}
-                style={{ border: "2px solid var(--color-divider)", background: "none", width: 36, height: 36, fontSize: 16, cursor: "pointer", color: "var(--color-text)", opacity: weekIdx === visibleWeeks.length - 1 ? 0.3 : 1 }}>
+              <button onClick={() => setWeekIdx((i) => Math.min(weekSteps - 1, i + 1))} disabled={weekIdx === weekSteps - 1}
+                style={{ border: "2px solid var(--color-divider)", background: "none", width: 36, height: 36, fontSize: 16, cursor: "pointer", color: "var(--color-text)", opacity: weekIdx === weekSteps - 1 ? 0.3 : 1 }}>
                 →
               </button>
             </div>
-            {currentWeekEvents.length === 0 ? (
+            {onNextMonthPage ? (
+              nextMonthFiltered.length === 0 ? (
+                <EmptyFilterState />
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "0 32px" }}>
+                  {nextMonthFiltered.map((ev) => (
+                    <Card key={ev.id} ev={ev} dateOrPeriod={ev.period} isPeriod={true} isFav={favorites.has(ev.id)} onToggleFav={() => toggleFav(ev.id)} />
+                  ))}
+                </div>
+              )
+            ) : currentWeekEvents.length === 0 ? (
               <EmptyFilterState />
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "0 32px" }}>
