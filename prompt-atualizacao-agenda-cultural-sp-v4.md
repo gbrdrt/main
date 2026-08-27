@@ -127,6 +127,10 @@ cinejoia.com.br/agenda — usar shotgun como alternativa — https://shotgun.liv
 
 Instituto Tomie Ohtake, Museu da Língua Portuguesa, Farol Santander, Auditório do Ibirapuera, Museu Afro Brasil, Galeria Ouro Velho/Ugra. Buscar antes de incluir — só entram se houver evento real no mês.
 
+Local que aparecer na busca editorial (4.9) e render evento confirmado pode ser
+promovido para esta lista na rodada seguinte — é assim que a curadoria cresce
+sem virar palpite.
+
 ## 4. Metodologia de busca
 
 1. Uma busca por local — nunca agrupar vários locais numa query só. O que é
@@ -161,6 +165,25 @@ Instituto Tomie Ohtake, Museu da Língua Portuguesa, Farol Santander, Auditório
 7. Para Sesc, tentar o padrão `unidade.sescsp.org.br/programacao/?data=MM/YYYY`
    quando disponível, mas validar se retornou dado real antes de usar.
 8. Puxar a atração/obra principal para o início do campo `desc` (ver seção 5.1).
+9. **Busca editorial geral — obrigatória nos dois modos de execução (seção 9).**
+   Depois das buscas por local, fazer 1–3 buscas amplas em veículos que publicam
+   roteiro semanal: `o que fazer em São Paulo neste fim de semana`,
+   `agenda cultural São Paulo [mês] [ano]`, `estreias de exposições São Paulo [mês]`.
+   Serve para pegar o que a curadoria fixa não cobre — estreia num espaço fora da
+   lista, festival novo, ocupação temporária, feira que acontece uma vez só. Foi
+   assim que o Kinoforum, que não estava em nenhuma lista, apareceu.
+
+   **Essas fontes são de descoberta, nunca de confirmação.** Roundup de jornal e
+   agregador é justamente onde mora o conteúdo reindexado de anos anteriores: um
+   texto de "sexta-feira, dia 29" de outro ano passa liso se ninguém conferir.
+   Todo evento que aparecer só aí precisa passar pelo cruzamento de dia da semana
+   (4.3) e, de preferência, ser confirmado na fonte do próprio local antes de
+   entrar. Se entrar só com fonte secundária, **dizer isso no relatório** (seção 8).
+
+   Veículos que costumam render: Guia Folha, Veja SP, Time Out São Paulo, Catraca
+   Livre, A Cidade de São Paulo, além de newsletters especializadas de cinema e
+   de shows. Nenhum deles é curadoria fixa — se um sair do ar ou virar paywall,
+   seguir sem ele, sem substituir por fonte pior.
 
 ## 5. Estrutura de dados (não alterar o formato)
 
@@ -307,5 +330,63 @@ ambiente (ver 4.2), item descartado pelo cruzamento de dia da semana (ver 4.3).
 Estas são **estatísticas descritivas do que foi encontrado**, não metas a
 cumprir — se a cobertura real for menor que o esperado, isso deve aparecer
 no relatório como está, não ser inflado.
+
+---
+
+## 9. Modos de execução
+
+Duas rotinas agendadas usam este mesmo prompt-mestre em modos diferentes. O modo
+vem dito no prompt do gatilho; **na dúvida, rodar em modo leve** — ele não
+destrói nada.
+
+### 9.1 Modo completo — dia 1º de cada mês
+
+É a rodada que reconstrói a agenda:
+
+1. Virar `MONTH_LABEL`/`YEAR_LABEL` para o novo mês corrente e atualizar
+   `LAST_UPDATED`.
+2. **Promover a prévia**: os itens do mês que está começando saem de `ONGOING` e
+   entram em `WEEKS` **com o mesmo `id`**, trocando `period` por `date`
+   (seção 1.1).
+3. Varrer individualmente os locais da seção 2 e os da seção 3.
+4. Fazer a busca editorial geral (4.9).
+5. Montar a prévia do mês seguinte em `ONGOING` (seção 1.1).
+6. Relatório completo da seção 8, com o bloco de migração de prévia.
+
+### 9.2 Modo leve — diário, dias 2 a 31
+
+Rodada barata, **aditiva e corretiva**. Pode:
+
+- acrescentar evento novo confirmado, do mês corrente ou da prévia;
+- corrigir ou anotar evento existente — cancelamento, mudança de data, elenco ou
+  local, "Últimos dias!", esgotado;
+- atualizar `LAST_UPDATED`, quando de fato alterar alguma coisa.
+
+**Não pode, nunca:**
+
+- apagar evento — o app já esconde sozinho o que encerrou (`hasEventEnded`);
+- alterar `id`;
+- mexer em `MONTH_LABEL`/`YEAR_LABEL` — a virada é exclusiva do modo completo;
+- reescrever `WEEKS` ou `ONGOING` inteiros.
+
+O escopo de cada rodada é a **busca editorial geral (4.9), sempre**, mais o
+**grupo de locais do dia da semana**:
+
+| Dia | Grupo |
+|---|---|
+| Segunda | Sesc: Pompeia, 14 Bis, Belenzinho, Avenida Paulista, 24 de Maio + guia "Em Cartaz" |
+| Terça | JazzB, Blue Note, Casa de Francisca, Cine Joia |
+| Quarta | Theatro Municipal/Praça das Artes, Sala São Paulo/Osesp, MASP, Pinacoteca |
+| Quinta | CCBB, CCSP, Cinemateca, Japan House, Bunkyo |
+| Sexta | Teatro Oficina, Vila Itororó, Mundo Pensante, Galeria Metrópole, feiras |
+| Sábado | Locais da seção 3 (ampliação da curadoria) |
+| Domingo | Só a busca editorial geral + revisão de acuracidade do que já está no ar |
+
+Assim cada local é re-checado uma vez por semana e nenhuma rodada custa o que
+custa a do dia 1º.
+
+**Se nada mudou, não commitar e não notificar.** Dia sem novidade é o caso
+normal do modo leve, não é falha. O relatório é curto: o que entrou, o que foi
+corrigido, e o que o grupo do dia não rendeu.
 
 ---
